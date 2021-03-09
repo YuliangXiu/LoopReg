@@ -442,6 +442,14 @@ class CombinedTrainer(Trainer):
 
         # correspondence loss
         # loss['corr'] = F.l1_loss(scan * mask, posed_scan_correspondences * mask) * weight_dict['corr']
+        
+        # corr: raw predicted corr pointcloud
+        # scan: original input scan
+        # posed_scan_correspondences: convert corr into smpl structure
+        #   - nearest neighbor shapedir/posedir 
+        #   - same topology with scan
+        # template_points: original smpl verts
+        
         loss['corr'] = F.l1_loss(scan, posed_scan_correspondences) * weight_dict['corr']
 
         # bring scan correspondences in R^3 closer to ref_smpl surface
@@ -526,18 +534,16 @@ class CombinedTrainer(Trainer):
         count = 0
         for batch in tqdm(self.val_data_loader):
             names = batch.get('name')
-            # vcs = batch.get('scan_vc').numpy()
+            scans = batch.get('scan')
             pose = batch.get('pose').to(self.device).requires_grad_(True)
             betas = batch.get('betas').to(self.device).requires_grad_(True)
             trans = batch.get('trans').to(self.device).requires_grad_(True)
 
             # predict initial correspondences for saving
             out = self.model(batch.get('scan').to(self.device))
-            import pdb; pdb.set_trace()
             # out['part_labels'] [B, 14, scan_vert_num]
             # out['correspondence'] [B, 3, scan_vert_num]
             corr_init = out['correspondences'].permute(0, 2, 1).detach()
-            _, part_label = torch.max(out['part_labels'].data, 1)
             corr = corr_init.clone().requires_grad_(True)
 
             instance_params = {'pose': pose, 'betas': betas, 'trans': trans}
@@ -583,38 +589,39 @@ class CombinedTrainer(Trainer):
                     trans_ = trans.detach().cpu().numpy()
                     corr_ = corr.detach().cpu().numpy()
 
-                    # self.save_output(names, pose_, betas_, trans_, corr_, vcs, save_name, epoch, it)
-                    self.save_output(names, pose_, betas_, trans_, corr_, save_name, epoch, it)
+                    self.save_output(names, scans, pose_, betas_, trans_, corr_, save_name, epoch, it)
 
             count += len(names)
 
             if (num_saves is not None) and (count >= num_saves):
                 break
 
-    def save_output(self, names, pose_, betas_, trans_, corr_, vcs, save_name, epoch, it):
+    def save_output(self, names, scans, pose_, betas_, trans_, corr_, save_name, epoch, it):
         from psbody.mesh import Mesh
         from lib.smpl_paths import SmplPaths
 
         sp = SmplPaths(gender='male')
         smpl = sp.get_smpl()
-        for nam, p, b, t, c, vc in zip(names, pose_, betas_, trans_, corr_, vcs):
+        for nam, p, b, t, c, s in zip(names, pose_, betas_, trans_, corr_, scans):
             name = split(nam)[1]
             smpl.pose[:] = p
             smpl.betas[:10] = b
             smpl.trans[:] = t
 
             # save registration
+            os.makedirs(join(self.exp_path, save_name), exist_ok=True)
             Mesh(smpl.r, smpl.f).write_ply(
-                join(self.exp_path, save_name + '_ep_{}'.format(epoch), name + '_{}_reg.ply'.format(it)))
+                join(self.exp_path, save_name, f'ep_{epoch}_{name}_{it}_reg.ply'))
+            
+            # save registration
+            Mesh(s, []).write_ply(
+                join(self.exp_path, save_name, f'ep_{epoch}_{name}_{it}_scan.ply'))
 
             # save raw correspondences
-            temp = Mesh(c, [])
-            temp.set_vertex_colors(vc)
-            temp.write_ply(
-                join(self.exp_path, save_name + '_ep_{}'.format(epoch), name + '_{}_craw.ply'.format(it)))
+            Mesh(c, []).write_ply(
+                join(self.exp_path, save_name, f'ep_{epoch}_{name}_{it}_craw.ply'))
 
             # save SMPL params
-            with open(join(self.exp_path, save_name + '_ep_{}'.format(epoch),
-                           name + '_{}_reg.pkl'.format(it)), 'wb') as f:
+            with open(join(self.exp_path, save_name, f'_ep_{epoch}_{name}_{it}_reg.pkl'), 'wb') as f:
                 pkl.dump({'pose': p, 'betas': b, 'trans': t}, f)
     

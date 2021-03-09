@@ -111,7 +111,7 @@ if __name__ == "__main__":
     # args.epochs = 3
     # args.naked = True
     # args.augment = False
-    # args.pretrained_path = '/BS/bharat-2/work/LearntRegistration/experiments/part_specific_net/naked_exp_id_01/checkpoints'
+    args.pretrained_path = '/home/yxiu/Code/LoopReg/experiments/combined_net/naked_exp_id_1/checkpoints'
     # args.mode = 'val'
     # args.optimizer = 'Adam'
     # args.save_name = 'corr'

@@ -1,6 +1,8 @@
 data
 models
 experiments
+*.obj
+*.ply
 *.pkl
 __pycache__/
 *.py[cod]
