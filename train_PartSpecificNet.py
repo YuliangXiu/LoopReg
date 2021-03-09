@@ -62,6 +62,7 @@ def main(mode, exp_id, optimizer, batch_size, epochs, pretrained_path=None, save
                                                                  'epochs_phase_01': 1, 'epochs_phase_02': 2},
                                   checkpoint_number=checkpoint_number)
         trainer.train_model(epochs)
+        
     elif mode == 'val':
         # MyDataLoaderFaustTest, MyDataLoaderCacher
         dataset = MyDataLoaderCacher('val', batch_size, cache_suffix=cache_suffix, split_file=split_file,

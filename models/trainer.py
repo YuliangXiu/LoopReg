@@ -274,7 +274,7 @@ class CombinedTrainer(Trainer):
         self.checkpoint_number = checkpoint_number
 
         # Load vsmpl
-        self.vsmpl = VolumetricSMPL('/BS/bharat-2/work/LearntRegistration/test_data/volumetric_smpl_function_64',
+        self.vsmpl = VolumetricSMPL('/home/yxiu/Code/LoopReg/assets/volumetric_smpl_function_64',
                                     device, 'male')
         sp = SmplPaths(gender='male')
         self.ref_smpl = sp.get_smpl()
@@ -285,7 +285,7 @@ class CombinedTrainer(Trainer):
         self.pose_prior = get_prior('male', precomputed=True)
 
         # Load smpl part labels
-        with open('/BS/bharat-2/work/LearntRegistration/test_data/smpl_parts_dense.pkl', 'rb') as f:
+        with open('/home/yxiu/Code/LoopReg/assets/smpl_parts_dense.pkl', 'rb') as f:
             dat = pkl.load(f, encoding='latin-1')
         self.smpl_parts = np.zeros((6890, 1))
         for n, k in enumerate(dat):
@@ -437,6 +437,7 @@ class CombinedTrainer(Trainer):
         # get posed scan corresponding points
         # import ipdb
         # ipdb.set_trace()
+        
         posed_scan_correspondences = self.vsmpl(corr, poses, betas, trans)
 
         # correspondence loss
@@ -525,13 +526,16 @@ class CombinedTrainer(Trainer):
         count = 0
         for batch in tqdm(self.val_data_loader):
             names = batch.get('name')
-            vcs = batch.get('scan_vc').numpy()
+            # vcs = batch.get('scan_vc').numpy()
             pose = batch.get('pose').to(self.device).requires_grad_(True)
             betas = batch.get('betas').to(self.device).requires_grad_(True)
             trans = batch.get('trans').to(self.device).requires_grad_(True)
 
             # predict initial correspondences for saving
             out = self.model(batch.get('scan').to(self.device))
+            import pdb; pdb.set_trace()
+            # out['part_labels'] [B, 14, scan_vert_num]
+            # out['correspondence'] [B, 3, scan_vert_num]
             corr_init = out['correspondences'].permute(0, 2, 1).detach()
             _, part_label = torch.max(out['part_labels'].data, 1)
             corr = corr_init.clone().requires_grad_(True)
@@ -579,7 +583,8 @@ class CombinedTrainer(Trainer):
                     trans_ = trans.detach().cpu().numpy()
                     corr_ = corr.detach().cpu().numpy()
 
-                    self.save_output(names, pose_, betas_, trans_, corr_, vcs, save_name, epoch, it)
+                    # self.save_output(names, pose_, betas_, trans_, corr_, vcs, save_name, epoch, it)
+                    self.save_output(names, pose_, betas_, trans_, corr_, save_name, epoch, it)
 
             count += len(names)
 
@@ -612,3 +617,4 @@ class CombinedTrainer(Trainer):
             with open(join(self.exp_path, save_name + '_ep_{}'.format(epoch),
                            name + '_{}_reg.pkl'.format(it)), 'wb') as f:
                 pkl.dump({'pose': p, 'betas': b, 'trans': t}, f)
+    

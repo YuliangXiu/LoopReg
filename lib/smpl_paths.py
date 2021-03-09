@@ -14,7 +14,7 @@ from lib.geometry import get_hres
 import scipy.sparse as sp
 
 ## Set your paths here
-ROOT = '/BS/RVH/work/data/'
+ROOT = '/home/yxiu/Code/smplx/models'
 smpl_vt_ft_path = 'assets/smpl_vt_ft.pkl'
 
 class SmplPaths:
@@ -28,17 +28,13 @@ class SmplPaths:
     def get_smpl_file(self):
         if self.gender == 'neutral':
             return join(ROOT,
-                        'smpl_models',
-                        'neutral',
-                        'basicModel_neutral_lbs_10_207_0_v1.0.0.pkl')
+                        'smpl/',
+                        'SMPL_NEUTRAL.pkl')
 
         else:
             smpl_file = join(ROOT,
-                             'smpl_models',
-                             'lrotmin',
-                             'lbs_tj10smooth6_0fixed_normalized',
-                             self.gender,
-                             'model.pkl')
+                             'smpl/'
+                             f'SMPL_{self.gender.upper()}.pkl')
 
 
             return smpl_file

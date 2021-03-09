@@ -73,7 +73,7 @@ class MyDataLoader(Dataset):
 
     @staticmethod
     def map_vitruvian_vertex_color(tgt_vertices, registered_smpl_mesh,
-                                   path_to_cols='/BS/bharat-2/work/LearntRegistration/test_data/vitruvian_cols.npy'):
+                                   path_to_cols='/home/yxiu/Code/LoopReg/assets/vitruvian_cols.npy'):
         """
         Vitruvian vertex color are defined for SMPL mesh. This function maps these colors from registered smpl to scan.
         """
@@ -160,28 +160,15 @@ class MyDataLoaderCacher(MyDataLoader):
         self.smpl_parts = np.zeros((6890, 1))
         for n, k in enumerate(dat):
             self.smpl_parts[dat[k]] = n
-
+        
     def __getitem__(self, idx):
         path = self.data[idx]
-        name = split(path)[1]
 
-        input_smpl = Mesh(filename=join(path, name + '_smpl.obj'))
         if self.naked:
-            input_scan = Mesh(filename=join(path, name + '_smpl.obj'))
+            input_scan = Mesh(filename=path)
         else:
-            input_scan = Mesh(filename=join(path, name + '.obj'))
-        temp = trimesh.Trimesh(vertices=input_scan.v, faces=input_scan.f)
-        points = temp.sample(NUM_POINTS)
-
-        if self.augment:
-            rot = self.get_rnd_rotations()
-            points = rot.apply(points)
-            input_smpl.v = rot.apply(input_smpl.v)
-
-        ind, _ = input_smpl.closest_vertices(points)
-        part_labels = self.smpl_parts[np.array(ind)]
-        correspondences = self.map_mesh_points_to_reference(points, input_smpl, self.ref_smpl.r)
-
+            input_scan = Mesh(filename=path)
+       
         # Load cached SMPL params
         cache_list = []
         if self.cache_suffix is not None:
@@ -197,24 +184,10 @@ class MyDataLoaderCacher(MyDataLoader):
             betas = np.zeros((10,))
             trans = np.zeros((3,))
 
-        if self.mode == 'train':
-            return {'scan': points.astype('float32'),
-                    'correspondences': correspondences.astype('float32'),
-                    'part_labels': part_labels.astype('float32'),
-                    'pose': pose.astype('float32'),
-                    'betas': betas.astype('float32'),
-                    'trans': trans.astype('float32'),
-                    'name': path
-                    }
 
-        vc = self.map_vitruvian_vertex_color(points, input_smpl)
-        return {'scan': points.astype('float32'),
-                'smpl': input_smpl.v.astype('float32'),
-                'correspondences': correspondences.astype('float32'),
-                'part_labels': part_labels.astype('float32'),
+        return {'scan': input_scan.v.astype('float32'),
                 'pose': pose.astype('float32'),
                 'betas': betas.astype('float32'),
                 'trans': trans.astype('float32'),
-                'scan_vc': vc,
                 'name': path
                 }

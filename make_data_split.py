@@ -19,22 +19,22 @@ from os.path import split, join, exists
 # ---subject-2
 # --datasets-2
 
-DATA_PATH = '/BS/bharat-2/static00/learnt_registration'
+DATA_PATH = './data'
 # add the folders you want to be the part of this dataset. Typically these would be the folders in side DATA_PATH
-datasets = ['axyz', 'renderpeople', 'renderpeople_rigged', 'th_good_1', 'th_good_3', 'julian', 'treedy']
+datasets = ['axyz', 'renderpeople_p27']
 
 
 def function(datasets, split, save_path):
     lis = []
     for dataset in datasets:
-        for scan in tqdm(glob(join(DATA_PATH, dataset, '*'))):
+        for scan in tqdm(glob(join(DATA_PATH, dataset, "raw_objs",'*'))):
             lis.append(scan)
 
     print(len(lis))
 
     tr_lis, te_lis, count = [], [], 0
     for dataset in datasets:
-        for scan in tqdm(glob(join(DATA_PATH, dataset, '*'))):
+        for scan in tqdm(glob(join(DATA_PATH, dataset, "raw_objs", '*'))):
             if count > split * len(lis):
                 tr_lis.append(scan)
             else:
