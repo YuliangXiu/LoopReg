@@ -186,6 +186,7 @@ class MyDataLoaderCacher(MyDataLoader):
 
 
         return {'scan': input_scan.v.astype('float32'),
+                'scan_f': input_scan.f.astype('int'),
                 'pose': pose.astype('float32'),
                 'betas': betas.astype('float32'),
                 'trans': trans.astype('float32'),

@@ -534,13 +534,14 @@ class CombinedTrainer(Trainer):
         count = 0
         for batch in tqdm(self.val_data_loader):
             names = batch.get('name')
-            scans = batch.get('scan')
+            scans_v = batch.get('scan')
+            scans_f = batch.get('scan_f')
             pose = batch.get('pose').to(self.device).requires_grad_(True)
             betas = batch.get('betas').to(self.device).requires_grad_(True)
             trans = batch.get('trans').to(self.device).requires_grad_(True)
 
             # predict initial correspondences for saving
-            out = self.model(batch.get('scan').to(self.device))
+            out = self.model(scans_v.to(self.device))
             # out['part_labels'] [B, 14, scan_vert_num]
             # out['correspondence'] [B, 3, scan_vert_num]
             corr_init = out['correspondences'].permute(0, 2, 1).detach()
@@ -589,39 +590,39 @@ class CombinedTrainer(Trainer):
                     trans_ = trans.detach().cpu().numpy()
                     corr_ = corr.detach().cpu().numpy()
 
-                    self.save_output(names, scans, pose_, betas_, trans_, corr_, save_name, epoch, it)
+                    self.save_output(names, scans_v, scans_f, pose_, betas_, trans_, corr_, save_name, epoch, it)
 
             count += len(names)
 
             if (num_saves is not None) and (count >= num_saves):
                 break
 
-    def save_output(self, names, scans, pose_, betas_, trans_, corr_, save_name, epoch, it):
+    def save_output(self, names, scans_v, scans_f, pose_, betas_, trans_, corr_, save_name, epoch, it):
         from psbody.mesh import Mesh
         from lib.smpl_paths import SmplPaths
 
         sp = SmplPaths(gender='male')
         smpl = sp.get_smpl()
-        for nam, p, b, t, c, s in zip(names, pose_, betas_, trans_, corr_, scans):
+        for nam, p, b, t, c, v, f in zip(names, pose_, betas_, trans_, corr_, scans_v, scans_f):
             name = split(nam)[1]
             smpl.pose[:] = p
             smpl.betas[:10] = b
             smpl.trans[:] = t
 
             # save registration
-            os.makedirs(join(self.exp_path, save_name), exist_ok=True)
+            os.makedirs(join(self.exp_path, f"{save_name}_ep_{epoch}"), exist_ok=True)
             Mesh(smpl.r, smpl.f).write_ply(
-                join(self.exp_path, save_name, f'ep_{epoch}_{name}_{it}_reg.ply'))
+                join(self.exp_path, f"{save_name}_ep_{epoch}", f'{name}_{it}_reg.ply'))
             
             # save registration
-            Mesh(s, []).write_ply(
-                join(self.exp_path, save_name, f'ep_{epoch}_{name}_{it}_scan.ply'))
+            Mesh(v, f).write_ply(
+                join(self.exp_path, f"{save_name}_ep_{epoch}", f'{name}_{it}_scan.ply'))
 
             # save raw correspondences
             Mesh(c, []).write_ply(
-                join(self.exp_path, save_name, f'ep_{epoch}_{name}_{it}_craw.ply'))
+                join(self.exp_path, f"{save_name}_ep_{epoch}", f'{name}_{it}_craw.ply'))
 
             # save SMPL params
-            with open(join(self.exp_path, save_name, f'_ep_{epoch}_{name}_{it}_reg.pkl'), 'wb') as f:
+            with open(join(self.exp_path, f"{save_name}_ep_{epoch}", f'{name}_{it}_reg.pkl'), 'wb') as f:
                 pkl.dump({'pose': p, 'betas': b, 'trans': t}, f)
     
