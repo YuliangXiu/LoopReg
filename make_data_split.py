@@ -21,20 +21,20 @@ from os.path import split, join, exists
 
 DATA_PATH = './data'
 # add the folders you want to be the part of this dataset. Typically these would be the folders in side DATA_PATH
-datasets = ['axyz', 'renderpeople_p27']
+datasets = ['else']
 
 
 def function(datasets, split, save_path):
     lis = []
     for dataset in datasets:
-        for scan in tqdm(glob(join(DATA_PATH, dataset, "raw_objs",'*'))):
+        for scan in tqdm(glob(join(DATA_PATH, dataset,'*30k.obj'))):
             lis.append(scan)
 
     print(len(lis))
 
     tr_lis, te_lis, count = [], [], 0
     for dataset in datasets:
-        for scan in tqdm(glob(join(DATA_PATH, dataset, "raw_objs", '*'))):
+        for scan in tqdm(glob(join(DATA_PATH, dataset, '*30k.obj'))):
             if count > split * len(lis):
                 tr_lis.append(scan)
             else:
@@ -48,7 +48,7 @@ def function(datasets, split, save_path):
 
 def main():
     SAVE_PATH = 'assets/data_split_01.pkl'
-    SPLIT = 0.1
+    SPLIT = 1.0
 
     function(datasets, SPLIT, SAVE_PATH)
 
